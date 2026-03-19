@@ -1,0 +1,7 @@
+names:
+  0: person
+nc: 1
+path: C:\Users\maxyi\.cache\kagglehub\datasets\rgbnihal\c2a-dataset\versions\2\C2A_Dataset\new_dataset3
+test: test\images
+train: train\images
+val: test\images
