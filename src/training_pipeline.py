@@ -78,6 +78,7 @@ results = model.train(
     epochs=40,
     imgsz=640,
     batch=8,
+    fraction=0.1,   #built-in param for using 10% of the data
     device='auto',  # Use auto for local
     project=".",
     name="stage1_all_data",
