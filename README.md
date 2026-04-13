@@ -28,3 +28,22 @@ Codebase for ENGG2112 group project
    ```bash
    pip install -r requirements.txt
    ```
+
+## Running the Pipeline
+
+To run the complete pipeline, execute the scripts in the following order:
+
+1. Merge the datasets:
+   ```bash
+   python src/merge_dataset.py
+   ```
+
+2. Run baseline validation:
+   ```bash
+   python src/baseline_validation.py
+   ```
+
+3. Run the main training script which contains functions from the training_pipeline.py:
+   ```bash
+   python src/main.py
+   ```

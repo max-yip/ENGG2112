@@ -45,7 +45,6 @@ def convert_visdrone(txt_path, img_w, img_h):
             x, y, w, h = map(float, parts[:4])
             category = int(parts[5])
 
-            # 只保留人
             if category not in [1, 2]:
                 continue
 
@@ -119,9 +118,6 @@ def process_vis(img_dir, label_dir, split):
         if os.path.exists(txt_path):
             yolo_lines = convert_visdrone(txt_path, w, h)
 
-        if len(yolo_lines) == 0:
-            continue
-
         new_name = f"vis_{name}"
 
         img_dst = os.path.join(OUTPUT, "images", split, new_name + ".jpg")
@@ -131,6 +127,7 @@ def process_vis(img_dir, label_dir, split):
 
         with open(label_dst, "w") as f:
             f.write("\n".join(yolo_lines))
+
 
 
 process_c2a(C2A_TRAIN_IMG, C2A_TRAIN_LABEL, "train")

@@ -1,0 +1,7 @@
+names:
+  0: person
+nc: 1
+path: combined_dataset
+test: images\val
+train: images\train
+val: images\val

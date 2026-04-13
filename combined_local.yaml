@@ -1,0 +1,8 @@
+augment: true
+names:
+  0: human
+nc: 1
+path: combined_dataset
+small_objects: true
+train: images\train
+val: images\val
