@@ -157,7 +157,39 @@ def merge_datasets():
     print(f"VisDrone Files  -> Train: {vis_t} | Val: {vis_v} | Test: {vis_te}")
     print("-" * 30)
     print(f"TOTALS          -> Train: {c2a_t + vis_t} | Val: {c2a_v + vis_v} | Test: {c2a_te + vis_te}")
+    
+    # Print background proportions
+def print_background_proportions():
+    """Print the proportions of background images (0 humans) in all splits."""
+    print("\n--- Background Image Proportions (0 humans) ---")
+    for split in ["train", "val", "test"]:
+        labels_dir = os.path.join(OUTPUT, "labels", split)
+        if not os.path.exists(labels_dir):
+            continue
+            
+        total_images = 0
+        background_images = 0
+        
+        for label_file in os.listdir(labels_dir):
+            if not label_file.endswith('.txt'):
+                continue
+                
+            total_images += 1
+            label_path = os.path.join(labels_dir, label_file)
+            
+            # Check if file is empty or contains only whitespace
+            with open(label_path, 'r') as f:
+                content = f.read().strip()
+                if not content:  # Empty file = background image
+                    background_images += 1
+        
+        if total_images > 0:
+            proportion = background_images / total_images
+            print(f"{split.capitalize()}: {background_images}/{total_images} ({proportion:.1%}) background images")
+        else:
+            print(f"{split.capitalize()}: No images found")
 
 
 if __name__ == '__main__':
     merge_datasets()
+    print_background_proportions()

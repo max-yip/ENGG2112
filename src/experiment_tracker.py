@@ -99,7 +99,7 @@ if __name__ == "__main__":
     dataset_path = "combined_dataset"
     yaml_config_path = "combined_local.yaml"
     run_name = "tracked_real_training"
-    epochs_to_run = 40
+    epochs_to_run = 10
 
     # Generate or refresh the YAML config from the current dataset
     generate_yaml_config(dataset_path, yaml_path=yaml_config_path)
