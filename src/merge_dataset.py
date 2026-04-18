@@ -1,44 +1,36 @@
 import os
-import yaml
 import kagglehub
 import cv2
-from ultralytics import YOLO
 import shutil
 from tqdm import tqdm
 
-# Dynamically locate the dataset
-print("Locating dataset...")
+# Download datasets
 c2a_path = kagglehub.dataset_download("rgbnihal/c2a-dataset")
 visdrone_path = kagglehub.dataset_download("banuprasadb/visdrone-dataset")
 
-# Build paths dynamically (OS-independent)
+# C2A Paths
 C2A_TRAIN_IMG = os.path.join(c2a_path, "C2A_Dataset", "new_dataset3", "train", "images")
 C2A_TRAIN_LABEL = os.path.join(c2a_path, "C2A_Dataset", "new_dataset3", "train", "labels")
-
 C2A_VAL_IMG = os.path.join(c2a_path, "C2A_Dataset", "new_dataset3", "val", "images")
 C2A_VAL_LABEL = os.path.join(c2a_path, "C2A_Dataset", "new_dataset3", "val", "labels")
+C2A_TEST_IMG = os.path.join(c2a_path, "C2A_Dataset", "new_dataset3", "test", "images")
+C2A_TEST_LABEL = os.path.join(c2a_path, "C2A_Dataset", "new_dataset3", "test", "labels")
 
+# VisDrone Paths
 VIS_TRAIN_IMG = os.path.join(visdrone_path, "VisDrone_Dataset", "VisDrone2019-DET-train", "images")
 VIS_TRAIN_LABEL = os.path.join(visdrone_path, "VisDrone_Dataset", "VisDrone2019-DET-train", "labels")
 VIS_VAL_IMG = os.path.join(visdrone_path, "VisDrone_Dataset", "VisDrone2019-DET-val", "images")
 VIS_VAL_LABEL = os.path.join(visdrone_path, "VisDrone_Dataset", "VisDrone2019-DET-val", "labels")
+VIS_TEST_IMG = os.path.join(visdrone_path, "VisDrone_Dataset", "VisDrone2019-DET-test-dev", "images")
+VIS_TEST_LABEL = os.path.join(visdrone_path, "VisDrone_Dataset", "VisDrone2019-DET-test-dev", "labels")
 
 OUTPUT = "combined_dataset"
 
-
-for split in ["train", "val"]:
-    os.makedirs(os.path.join(OUTPUT, "images", split), exist_ok=True)
-    os.makedirs(os.path.join(OUTPUT, "labels", split), exist_ok=True)
-
-
-
 def convert_visdrone(txt_path, img_w, img_h):
     yolo_lines = []
-
     with open(txt_path, "r") as f:
         for line in f.readlines():
             parts = line.strip().split(",")
-
             if len(parts) < 6:
                 continue
 
@@ -57,27 +49,27 @@ def convert_visdrone(txt_path, img_w, img_h):
                 continue
 
             yolo_lines.append(f"0 {x_c} {y_c} {w} {h}")
-
     return yolo_lines
 
-
-
 def process_c2a(img_dir, label_dir, split):
+    count = 0
+    if not os.path.exists(img_dir):
+        return count
+        
     for file in tqdm(os.listdir(img_dir), desc=f"C2A {split}"):
         if not file.endswith((".jpg", ".png")):
             continue
 
         name = os.path.splitext(file)[0]
-
         img_src = os.path.join(img_dir, file)
         label_src = os.path.join(label_dir, name + ".txt")
-
         new_name = f"c2a_{name}"
 
         img_dst = os.path.join(OUTPUT, "images", split, new_name + ".jpg")
         label_dst = os.path.join(OUTPUT, "labels", split, new_name + ".txt")
 
         shutil.copy(img_src, img_dst)
+        count += 1
 
         if os.path.exists(label_src):
             with open(label_src, "r") as f:
@@ -95,16 +87,19 @@ def process_c2a(img_dir, label_dir, split):
                 f.write("\n".join(new_lines))
         else:
             open(label_dst, "w").close()
-
-
+            
+    return count
 
 def process_vis(img_dir, label_dir, split):
+    count = 0
+    if not os.path.exists(img_dir):
+        return count
+        
     for file in tqdm(os.listdir(img_dir), desc=f"VisDrone {split}"):
         if not file.endswith((".jpg", ".png")):
             continue
 
         name = os.path.splitext(file)[0]
-
         img_path = os.path.join(img_dir, file)
         txt_path = os.path.join(label_dir, name + ".txt")
 
@@ -113,13 +108,13 @@ def process_vis(img_dir, label_dir, split):
             continue
 
         h, w = img.shape[:2]
+        count += 1
 
         yolo_lines = []
         if os.path.exists(txt_path):
             yolo_lines = convert_visdrone(txt_path, w, h)
 
         new_name = f"vis_{name}"
-
         img_dst = os.path.join(OUTPUT, "images", split, new_name + ".jpg")
         label_dst = os.path.join(OUTPUT, "labels", split, new_name + ".txt")
 
@@ -127,13 +122,42 @@ def process_vis(img_dir, label_dir, split):
 
         with open(label_dst, "w") as f:
             f.write("\n".join(yolo_lines))
+            
+    return count
+
+def merge_datasets():
+    # --- NEW CHECK ADDED HERE ---
+    if os.path.exists(OUTPUT):
+        print(f"The directory '{OUTPUT}' already exists.")
+        print("Skipping merge. If you need to rebuild the dataset, please delete the folder first.")
+        return 
+    # ----------------------------
+
+    print("Locating dataset...")
+    
+    # Build directories for train, val, AND test
+    for split in ["train", "val", "test"]:
+        os.makedirs(os.path.join(OUTPUT, "images", split), exist_ok=True)
+        os.makedirs(os.path.join(OUTPUT, "labels", split), exist_ok=True)
+
+    # Process and tally C2A
+    c2a_t = process_c2a(C2A_TRAIN_IMG, C2A_TRAIN_LABEL, "train")
+    c2a_v = process_c2a(C2A_VAL_IMG, C2A_VAL_LABEL, "val")
+    c2a_te = process_c2a(C2A_TEST_IMG, C2A_TEST_LABEL, "test")
+
+    # Process and tally VisDrone
+    vis_t = process_vis(VIS_TRAIN_IMG, VIS_TRAIN_LABEL, "train")
+    vis_v = process_vis(VIS_VAL_IMG, VIS_VAL_LABEL, "val")
+    vis_te = process_vis(VIS_TEST_IMG, VIS_TEST_LABEL, "test")
+
+    # Print the final tally
+    print("\n✅ DONE!")
+    print("-" * 30)
+    print(f"C2A Files       -> Train: {c2a_t} | Val: {c2a_v} | Test: {c2a_te}")
+    print(f"VisDrone Files  -> Train: {vis_t} | Val: {vis_v} | Test: {vis_te}")
+    print("-" * 30)
+    print(f"TOTALS          -> Train: {c2a_t + vis_t} | Val: {c2a_v + vis_v} | Test: {c2a_te + vis_te}")
 
 
-
-process_c2a(C2A_TRAIN_IMG, C2A_TRAIN_LABEL, "train")
-process_c2a(C2A_VAL_IMG, C2A_VAL_LABEL, "val")
-
-process_vis(VIS_TRAIN_IMG, VIS_TRAIN_LABEL, "train")
-process_vis(VIS_VAL_IMG, VIS_VAL_LABEL, "val")
-
-print("✅ DONE")
+if __name__ == '__main__':
+    merge_datasets()

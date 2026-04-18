@@ -2,9 +2,7 @@ import os
 import yaml
 from ultralytics import YOLO
 
-# --- Push EVERYTHING inside the shield! ---
-if __name__ == '__main__':
-    
+def run_baseline_validation():
     # 1. Use the combined dataset
     dataset_dir = "combined_dataset"
     print(f"Dataset active directory: {dataset_dir}")
@@ -14,7 +12,7 @@ if __name__ == '__main__':
         'path': dataset_dir,
         'train': os.path.join("images", "train"),
         'val': os.path.join("images", "val"),
-        'test': os.path.join("images", "val"),  # Using val as test for baseline
+        'test': os.path.join("images", "test"),
         'names': {0: 'person'},
         'nc': 1
     }
@@ -34,3 +32,7 @@ if __name__ == '__main__':
     print("\n--- Baseline Results ---")
     print(f"mAP50-95: {metrics.box.map:.4f}")
     print(f"mAP50:    {metrics.box.map50:.4f}")
+
+
+if __name__ == '__main__':
+    run_baseline_validation()
