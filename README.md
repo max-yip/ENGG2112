@@ -43,7 +43,9 @@ To run the complete pipeline, execute the scripts in the following order:
    python src/baseline_validation.py
    ```
 
-3. Run the main training script which contains functions from the training_pipeline.py:
+3. Run the main training script which basically do both steps 1 and 2:
    ```bash
    python src/main.py
    ```
+
+4. An example training_pipeline is in ```experiment_tracker.py```. Currently under construction
