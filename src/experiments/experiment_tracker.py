@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 from typing import List
 
-from training_pipeline import generate_yaml_config, train_yolo
+from models.training_pipeline import generate_yaml_config, train_yolo
 
 # Set plotting DPI for better resolution
 matplotlib.rcParams['figure.dpi'] = 110
