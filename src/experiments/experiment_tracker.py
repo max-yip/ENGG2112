@@ -2,8 +2,6 @@ import matplotlib.pyplot as plt
 import matplotlib
 from typing import List
 
-from models.training_pipeline import generate_yaml_config, train_yolo
-
 # Set plotting DPI for better resolution
 matplotlib.rcParams['figure.dpi'] = 110
 
@@ -88,48 +86,3 @@ def plot_results(tracker: ExperimentTracker):
 
     plt.tight_layout()
     plt.show()
-
-
-if __name__ == "__main__":
-    # ---------------------------------------------------------
-    # Run a real YOLO training pipeline and log the results
-    # ---------------------------------------------------------
-    tracker = ExperimentTracker()
-
-    dataset_path = "combined_dataset"
-    yaml_config_path = "combined_local.yaml"
-    run_name = "tracked_real_training"
-    epochs_to_run = 10
-
-    # Generate or refresh the YAML config from the current dataset
-    generate_yaml_config(dataset_path, yaml_path=yaml_config_path)
-
-    # Train using the real pipeline and capture metrics
-    results = train_yolo(
-        yaml_path=yaml_config_path,
-        epochs=epochs_to_run,
-        batch_size=8,
-        fraction=0.1,
-        project_dir=".",
-        run_name=run_name
-    )
-
-    final_map50 = getattr(results.box, "map50", None)
-    final_map50_95 = getattr(results.box, "map", None)
-
-    if final_map50 is None or final_map50_95 is None:
-        raise RuntimeError("Unable to extract YOLO metrics from training results.")
-
-    tracker.log(YoloExperiment(
-        name=run_name,
-        model="yolov8n",
-        map50=final_map50,
-        map50_95=final_map50_95,
-        epochs=epochs_to_run
-    ))
-
-    print(f"Logged {len(tracker)} real YOLO experiments.")
-    print(f"Best by mAP@50    : {tracker.best_by('map50')}")
-    print(f"Best by mAP@50-95 : {tracker.best_by('map50_95')}")
-
-    plot_results(tracker)
