@@ -14,7 +14,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -68,6 +67,5 @@ venv.bak/
 # Logs
 *.log
 
-runs/
 combined_dataset/
 data/

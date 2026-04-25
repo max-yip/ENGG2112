@@ -159,6 +159,7 @@ def merge_datasets():
     print(f"TOTALS          -> Train: {c2a_t + vis_t} | Val: {c2a_v + vis_v} | Test: {c2a_te + vis_te}")
     
     # Print background proportions
+
 def print_background_proportions():
     """Print the proportions of background images (0 humans) in all splits."""
     print("\n--- Background Image Proportions (0 humans) ---")
@@ -189,7 +190,19 @@ def print_background_proportions():
         else:
             print(f"{split.capitalize()}: No images found")
 
+def verify_dataset():
+    """Checks if the required YOLO directory structure exists."""
+
+    dataset_path = "combined_dataset"
+    
+    print(f"Dataset active directory: {dataset_path}")
+    assert os.path.exists(os.path.join(dataset_path, "images", "train")), "Train images missing!"
+    assert os.path.exists(os.path.join(dataset_path, "labels", "train")), "Train labels missing!"
+    assert os.path.exists(os.path.join(dataset_path, "images", "val")), "Validation images missing!"
+    assert os.path.exists(os.path.join(dataset_path, "labels", "val")), "Validation labels missing!"
+    print("✅ Dataset verified!")
 
 if __name__ == '__main__':
     merge_datasets()
     print_background_proportions()
+    verify_dataset()
