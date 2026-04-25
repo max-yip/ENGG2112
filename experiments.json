@@ -1,6 +1,6 @@
 [
   {
-    "name": "yolo26-stage1-test",
+    "name": "yolo26-stage1-test1",
     "model": "yolov26n",
     "map50": 0.6729739427677334,
     "map50_95": 0.3943461105986829,
@@ -11,7 +11,7 @@
     "R": 0.6330817401756871
   },
   {
-    "name": "yolo26-stage1-test",
+    "name": "yolo26-stage1-test2",
     "model": "yolov26n",
     "map50": 0.7340276934852545,
     "map50_95": 0.4722252820228726,
