@@ -4,5 +4,6 @@ names:
 nc: 1
 path: combined_dataset
 small_objects: true
+test: images\test
 train: images\train
 val: images\val

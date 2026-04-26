@@ -2,6 +2,7 @@ import os
 import kagglehub
 import cv2
 import shutil
+import random
 from tqdm import tqdm
 
 # Download datasets
@@ -27,29 +28,33 @@ VIS_TEST_LABEL = os.path.join(visdrone_path, "VisDrone_Dataset", "VisDrone2019-D
 OUTPUT = "combined_dataset"
 
 def convert_visdrone(txt_path, img_w, img_h):
+    """Filter pre-converted VisDrone YOLO annotations.
+    
+    The Kaggle dataset is already in YOLO format (spaces, not commas).
+    VisDrone category mapping:
+    0 = pedestrian (person)
+    1 = people
+    """
     yolo_lines = []
     with open(txt_path, "r") as f:
         for line in f.readlines():
-            parts = line.strip().split(",")
-            if len(parts) < 6:
+            # 1. Split by spaces instead of commas
+            parts = line.strip().split()
+            
+            # 2. YOLO format has exactly 5 parts
+            if len(parts) != 5:
                 continue
 
-            x, y, w, h = map(float, parts[:4])
-            category = int(parts[5])
+            class_id = int(parts[0])
 
-            if category not in [1, 2]:
-                continue
-
-            x_c = (x + w / 2) / img_w
-            y_c = (y + h / 2) / img_h
-            w /= img_w
-            h /= img_h
-
-            if w <= 0 or h <= 0:
-                continue
-
-            yolo_lines.append(f"0 {x_c} {y_c} {w} {h}")
+            # 3. Include only pedestrian (0) and people (1)
+            if class_id in [0, 1]:
+                # Force class ID to 0 to seamlessly merge with C2A
+                parts[0] = "0"
+                yolo_lines.append(" ".join(parts))
+                
     return yolo_lines
+
 
 def process_c2a(img_dir, label_dir, split):
     count = 0
@@ -157,12 +162,16 @@ def merge_datasets():
     print(f"VisDrone Files  -> Train: {vis_t} | Val: {vis_v} | Test: {vis_te}")
     print("-" * 30)
     print(f"TOTALS          -> Train: {c2a_t + vis_t} | Val: {c2a_v + vis_v} | Test: {c2a_te + vis_te}")
-    
-    # Print background proportions
 
 def print_background_proportions():
-    """Print the proportions of background images (0 humans) in all splits."""
+    """Print the proportions of background images (0 humans) in all splits.
+    
+    Returns:
+        float: The proportion of background images in the training set.
+    """
     print("\n--- Background Image Proportions (0 humans) ---")
+    train_proportion = 0
+    
     for split in ["train", "val", "test"]:
         labels_dir = os.path.join(OUTPUT, "labels", split)
         if not os.path.exists(labels_dir):
@@ -187,8 +196,96 @@ def print_background_proportions():
         if total_images > 0:
             proportion = background_images / total_images
             print(f"{split.capitalize()}: {background_images}/{total_images} ({proportion:.1%}) background images")
+            
+            # Store train proportion for later use
+            if split == "train":
+                train_proportion = proportion
         else:
             print(f"{split.capitalize()}: No images found")
+    
+    return train_proportion
+
+def reduce_background_images_in_train(curr_proportion, target_percentage=10):
+    """Reduce the amount of background images in the training set to a target percentage.
+    
+    Moves excess background images to a separate 'background_dataset' directory.
+    
+    Args:
+        curr_proportion (float): Current proportion of background images in training set.
+        target_percentage (int): Target percentage of background images to keep (default 10%).
+    """
+    dataset_path = "combined_dataset"
+    background_dataset_path = "background_dataset"
+    train_labels_dir = os.path.join(dataset_path, "labels", "train")
+    train_images_dir = os.path.join(dataset_path, "images", "train")
+    
+    # Safe check: if already at or below target percentage, return immediately
+    if curr_proportion <= target_percentage / 100:
+        print(f"\n--- Background Images Already at Target ---")
+        print(f"Current proportion: {curr_proportion:.1%}")
+        print(f"Target proportion: {target_percentage/100:.1%}")
+        print("No reduction needed. Returning immediately.")
+        return
+    
+    if not os.path.exists(train_labels_dir):
+        print("Training set not found!")
+        return
+    
+    # Create background dataset directory structure
+    bg_labels_dir = os.path.join(background_dataset_path, "labels", "background")
+    bg_images_dir = os.path.join(background_dataset_path, "images", "background")
+    os.makedirs(bg_labels_dir, exist_ok=True)
+    os.makedirs(bg_images_dir, exist_ok=True)
+    
+    # Identify background images (empty label files)
+    background_images = []
+    total_images = 0
+    
+    for label_file in os.listdir(train_labels_dir):
+        if not label_file.endswith('.txt'):
+            continue
+        
+        total_images += 1
+        label_path = os.path.join(train_labels_dir, label_file)
+        
+        # Check if file is empty or contains only whitespace
+        with open(label_path, 'r') as f:
+            content = f.read().strip()
+            if not content:  # Background image
+                background_images.append(label_file)
+    
+    if not background_images:
+        print("No background images found in train set.")
+        return
+    
+    # Calculate how many background images to remove
+    target_count = max(1, int(len(background_images) * target_percentage / 100))
+    images_to_remove = background_images[target_count:]
+    
+    print(f"\n--- Reducing Background Images in Training Set ---")
+    print(f"Total background images: {len(background_images)}")
+    print(f"Target percentage: {target_percentage}%")
+    print(f"Images to keep: {target_count}")
+    print(f"Images to remove: {len(images_to_remove)}")
+    
+    # Move excess background images to background_dataset
+    for label_file in tqdm(images_to_remove, desc="Moving background images"):
+        # Get corresponding image filename
+        image_file = os.path.splitext(label_file)[0] + ".jpg"
+        
+        # Move label
+        label_src = os.path.join(train_labels_dir, label_file)
+        label_dst = os.path.join(bg_labels_dir, label_file)
+        if os.path.exists(label_src):
+            shutil.move(label_src, label_dst)
+        
+        # Move image
+        image_src = os.path.join(train_images_dir, image_file)
+        image_dst = os.path.join(bg_images_dir, image_file)
+        if os.path.exists(image_src):
+            shutil.move(image_src, image_dst)
+    
+    print(f"✅ Moved {len(images_to_remove)} background images to 'background_dataset'.")
 
 def verify_dataset():
     """Checks if the required YOLO directory structure exists."""
@@ -204,5 +301,6 @@ def verify_dataset():
 
 if __name__ == '__main__':
     merge_datasets()
-    print_background_proportions()
+    train_proportion = print_background_proportions()
+    reduce_background_images_in_train(train_proportion)
     verify_dataset()

@@ -1,0 +1,13 @@
+{
+    "model": "runs/detect/yolo26-1pass-fixed-dataset/weights/best.pt",
+    "dataset_config": "combined_local.yaml",
+    "image_size": 800,
+    "metrics": {
+        "Precision": 0.7941280080124022,
+        "Recall": 0.6000600570542015,
+        "mAP@50": 0.6562115436788147,
+        "mAP@50-95": 0.39620691193674706,
+        "F1_Score": 0.6835866235595482,
+        "Fitness": 0.39620691193674706
+    }
+}
