@@ -23,10 +23,10 @@ def main():
 
     dataset_path = "combined_dataset"
     yaml_config_path = "combined_local.yaml"
-    run_name = "yolo26-stage1-test"
+    run_name = "yolo26-test"
     yolo_model_name = "yolo26n.pt"
-    epochs_to_run = 5
-    fraction_size = 0.1 #0 to 1
+    epochs_to_run = 1
+    fraction_size = 1 #0 to 1
     image_size = 800
 
     # Generate or refresh the YAML config from the current dataset
@@ -39,7 +39,7 @@ def main():
         img_size= image_size,
         epochs=epochs_to_run,
         batch_size=8,
-        fraction=0.4,
+        fraction=1,
         project_dir=".",
         run_name=run_name
     )

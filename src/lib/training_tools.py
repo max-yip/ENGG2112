@@ -140,6 +140,7 @@ def generate_yaml_config(dataset_path, yaml_path="combined_local.yaml"):
         "path": dataset_path,
         "train": os.path.join("images", "train"),
         "val": os.path.join("images", "val"),
+        "test": os.path.join("images", "test"),
         "names": {0: "human"},
         "nc": 1,
         "augment": True,

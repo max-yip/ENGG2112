@@ -67,5 +67,6 @@ venv.bak/
 # Logs
 *.log
 
+background_dataset/
 combined_dataset/
 data/
