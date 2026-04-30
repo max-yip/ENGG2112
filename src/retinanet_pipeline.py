@@ -15,6 +15,8 @@ import os
 import json
 import matplotlib.pyplot as plt
 
+from torchmetrics.detection import MeanAveragePrecision
+
 from lib.dataset import merge_datasets, verify_dataset
 from lib.baseline_validation import run_baseline_validation
 from lib.training_tools import ExperimentTracker, Experiment, plot_results
@@ -31,10 +33,6 @@ class DetectionDataset(Dataset):
         self.label_dir = Path(label_dir)
         self.img_size = img_size
         self.image_files = sorted(self.image_dir.glob("*.jpg")) + sorted(self.image_dir.glob("*.png"))
-        self.transform = transforms.Compose([
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], 
-                               std=[0.229, 0.224, 0.225])
-        ])
     
     def __len__(self):
         return len(self.image_files)
@@ -59,11 +57,8 @@ class DetectionDataset(Dataset):
         # 2. Resize directly on the GPU/Tensor
         image = F.resize(image, [self.img_size, self.img_size], antialias=True)
         
-        # 3. Convert to float and scale to [0, 1] BEFORE normalizing
+        # 3. Convert to float and scale to [0, 1]
         image = image.float() / 255.0
-        
-        # 4. Apply ImageNet normalization
-        image = self.transform(image)
         
         # Load YOLO annotations (normalized coords) and convert to absolute
         boxes = []
@@ -179,13 +174,23 @@ def train_retinanet(
     # Replace classification head for binary classification (background + collapsed building)
     in_channels = model.head.classification_head.cls_logits.in_channels
     num_classes = 2  # background + collapsed building
-    num_anchors_per_location = len(model.anchor_generator.cell_anchors[0])
+    num_anchors_per_location = model.anchor_generator.num_anchors_per_location()[0]
     num_outputs = num_classes * num_anchors_per_location
-    model.head.classification_head.cls_logits = torch.nn.Conv2d(
+    
+    # Create new Conv2d layer
+    new_cls_logits = torch.nn.Conv2d(
         in_channels, num_outputs, kernel_size=3, stride=1, padding=1
     )
     
-    # Update classification head's num_classes to match our binary classification
+    # CRITICAL: Initialize bias for Focal Loss
+    # Focal Loss requires special prior probability initialization
+    # Using π=0.01 (prior prob of positive class) → bias = -log((1-π)/π) ≈ -4.595
+    prior_prob = 0.01
+    bias_init = -torch.log(torch.tensor((1.0 - prior_prob) / prior_prob))
+    torch.nn.init.constant_(new_cls_logits.bias, bias_init.item())
+    torch.nn.init.normal_(new_cls_logits.weight, std=0.01)
+    
+    model.head.classification_head.cls_logits = new_cls_logits
     model.head.classification_head.num_classes = num_classes
 
     model.to(device)
@@ -196,7 +201,8 @@ def train_retinanet(
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
     
     # 3. INITIALIZE AMP SCALER
-    scaler = torch.amp.GradScaler('cuda')
+    use_amp = device.type == "cuda"
+    scaler = torch.amp.GradScaler(enabled=use_amp)
     
     metrics_history = {
         "train_loss": [],
@@ -219,53 +225,80 @@ def train_retinanet(
             optimizer.zero_grad(set_to_none=True) # Slightly faster than zero_grad()
             
             # 4. USE AUTOMATIC MIXED PRECISION (AMP)
-            with torch.amp.autocast('cuda'):
+            with torch.amp.autocast(device_type=device.type, enabled=use_amp):
                 loss_dict = model(images, targets)
                 losses = sum(loss for loss in loss_dict.values())
             
-            scaler.scale(losses).backward()
-            scaler.step(optimizer)
-            scaler.update()
-            
             train_loss_sum += losses.item()
+            
+            if use_amp:
+                scaler.scale(losses).backward()
+                scaler.step(optimizer)
+                scaler.update()
+            else:
+                losses.backward()
+                optimizer.step()
         
+        # Calculate average training loss
         avg_train_loss = train_loss_sum / len(train_loader)
-        metrics_history["train_loss"].append(avg_train_loss)
         
-        # Validation phase - Only running every 2 epochs to save time
-        if (epoch + 1) % 2 == 0 or epoch == epochs - 1:
-            model.eval()
-            val_loss_sum = 0.0
-            all_predictions = []
-            all_targets = []
+        # Validation phase
+        model.eval()
+        all_predictions = []
+        all_targets = []
+        
+        with torch.no_grad():
+            for images, targets in tqdm(val_loader, desc=f"Epoch {epoch+1}/{epochs} - Validation"):
+                images = [img.to(device, non_blocking=True) for img in images]
+                targets = [{k: v.to(device, non_blocking=True) for k, v in t.items()} for t in targets]
+                
+                # AMP for validation forward pass too
+                with torch.amp.autocast(device_type=device.type, enabled=use_amp):
+                    predictions = model(images)
+                
+                all_predictions.extend(predictions)
+                all_targets.extend(targets)
+        
+        # Compute real mAP using torchmetrics
+        # Convert predictions and targets to torchmetrics format
+        preds = []
+        metric_targets = []
+        
+        for pred, target in zip(all_predictions, all_targets):
+            # Predictions: boxes, scores, labels
+            pred_boxes = pred['boxes'].cpu()
+            pred_scores = pred['scores'].cpu()
+            pred_labels = pred['labels'].cpu()
             
-            with torch.no_grad():
-                for images, targets in tqdm(val_loader, desc=f"Epoch {epoch+1}/{epochs} - Validation"):
-                    images = [img.to(device, non_blocking=True) for img in images]
-                    targets = [{k: v.to(device, non_blocking=True) for k, v in t.items()} for t in targets]
-                    
-                    # AMP for validation forward pass too
-                    with torch.amp.autocast('cuda'):
-                        predictions = model(images)
-                    
-                    all_predictions.extend(predictions)
-                    all_targets.extend(targets)
+            preds.append({
+                'boxes': pred_boxes,
+                'scores': pred_scores,
+                'labels': pred_labels
+            })
             
-            avg_confidence = []
-            for pred in all_predictions:
-                if len(pred["scores"]) > 0:
-                    avg_confidence.append(pred["scores"].mean().item())
+            # Targets: boxes, labels
+            target_boxes = target['boxes'].cpu()
+            target_labels = target['labels'].cpu()
             
-            ap50_approx = np.mean(avg_confidence) if avg_confidence else 0.0
-            ap_approx = ap50_approx * 0.8  
-            
-            metrics_history["val_loss"].append(val_loss_sum)
-            metrics_history["val_ap50"].append(ap50_approx)
-            metrics_history["val_ap"].append(ap_approx)
-            
-            print(f"Epoch {epoch+1} - Train Loss: {avg_train_loss:.4f}, AP@50: {ap50_approx:.4f}")
-        else:
-            print(f"Epoch {epoch+1} - Train Loss: {avg_train_loss:.4f} (Skipped Validation)")
+            metric_targets.append({
+                'boxes': target_boxes,
+                'labels': target_labels
+            })
+        
+        # Compute mAP
+        metric = MeanAveragePrecision(iou_type="bbox", class_metrics=True)
+        metric.update(preds, metric_targets)
+        result = metric.compute()
+        
+        map50 = result['map_50'].item()
+        map = result['map'].item()
+        
+        print(f"Epoch {epoch+1} - Train Loss: {avg_train_loss:.4f}, mAP@50: {map50:.4f}, mAP: {map:.4f}")
+        
+        # NOTE: Validation loss = 0.0 is EXPECTED (TorchVision models don't compute loss in eval mode)
+        metrics_history["val_loss"].append(0.0)
+        metrics_history["val_ap50"].append(map50)
+        metrics_history["val_ap"].append(map)
             
         lr_scheduler.step()
     
@@ -313,7 +346,7 @@ def main():
 
     dataset_path = "combined_dataset"
     run_name = "retinanet_stage1"
-    epochs_to_run = 5
+    epochs_to_run = 2
     batch_size = 8
     img_size = 640
     learning_rate = 0.005
