@@ -23,11 +23,11 @@ def main():
 
     dataset_path = "combined_dataset"
     yaml_config_path = "combined_local.yaml"
-    run_name = "yolo26-test"
+    run_name = "yolo26-hyperparams_baseline"
     yolo_model_name = "yolo26n.pt"
-    epochs_to_run = 1
+    epochs_to_run = 40
     fraction_size = 1 #0 to 1
-    image_size = 800
+    image_size = 640
 
     # Generate or refresh the YAML config from the current dataset
     generate_yaml_config(dataset_path, yaml_path=yaml_config_path)
@@ -71,7 +71,9 @@ def main():
     plot_results(tracker)
 
 
-# future work: filter all images with humans < threshold then use the stage 1 model to train with small humans only
+# future work: 
+# 1. try plugging in the yolo26n-p2.yaml as model (p2 head )
+# 1. filter all images with humans < threshold then use the stage 1 model to train with small humans only
 
 
 if __name__ == '__main__':

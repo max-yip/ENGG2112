@@ -16,6 +16,8 @@ tqdm
 joblib
 streamlit
 torch
+torchvision
+torchmetrics
 kagglehub
 ultralytics
 opencv-python
