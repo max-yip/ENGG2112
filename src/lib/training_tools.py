@@ -156,10 +156,12 @@ def generate_yaml_config(dataset_path, yaml_path="combined_local.yaml"):
         
     return yaml_path
 
-def train_yolo(yaml_path, yolo_model="yolov8n.pt", img_size = 640, epochs=40, batch_size=8, fraction=0.1, project_dir=".", run_name="stage1_all_data"):
+def train_yolo(yaml_path, yolo_model="yolov26n.pt", img_size = 640, epochs=40, batch_size=8, fraction=0.1, project_dir=".", run_name="stage1_all_data"):
     """Loads the YOLO model and begins the training loop."""
-    model = YOLO(yolo_model)
     
+    model = YOLO(yolo_model)
+    model.load("yolo26n.pt")
+
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"Using device: {device}")
     print("About to start training...")
