@@ -23,8 +23,8 @@ def main():
 
     dataset_path = "combined_dataset"
     yaml_config_path = "combined_local.yaml"
-    run_name = "yolo26-hyperparams_baseline"
-    yolo_model_name = "yolo26n.pt"
+    run_name = "yolo26-hyperparams_p2head"
+    yolo_model_name = "yolo26n-p2.yaml"
     epochs_to_run = 40
     fraction_size = 1 #0 to 1
     image_size = 640
@@ -38,7 +38,7 @@ def main():
         yolo_model=yolo_model_name,
         img_size= image_size,
         epochs=epochs_to_run,
-        batch_size=8,
+        batch_size=4,
         fraction=1,
         project_dir=".",
         run_name=run_name
@@ -54,7 +54,7 @@ def main():
 
     tracker.log(Experiment(
         name=run_name,
-        model="yolov26n",
+        model="yolov26n-p2",
         map50=final_map50,
         map50_95=final_map50_95,
         epochs=epochs_to_run,
