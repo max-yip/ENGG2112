@@ -26,7 +26,7 @@ import torchvision.transforms.functional as F
 
 
 class DetectionDataset(Dataset):
-    """Custom PyTorch dataset for YOLO-format annotations."""
+    """Custom PyTorch dataset that reads YOLO-format label files for a TorchVision detection model."""
     
     def __init__(self, image_dir, label_dir, img_size=640):
         self.image_dir = Path(image_dir)
@@ -85,7 +85,7 @@ class DetectionDataset(Dataset):
                         y2 = max(y1 + 1, min(y2, self.img_size))
                         
                         boxes.append([x1, y1, x2, y2])
-                        labels.append(class_id + 1)  # TorchVision detection models use 1-indexed labels
+                        labels.append(class_id + 1)  # YOLO class 0 => TorchVision label 1, background is implicitly label 0
         
         if len(boxes) == 0:
             # Add dummy box if no objects
@@ -208,7 +208,9 @@ def train_retinanet(
         "train_loss": [],
         "val_loss": [],
         "val_ap50": [],
-        "val_ap": []
+        "val_ap": [],
+        "val_precision": [],
+        "val_recall": []
     }
     
     print("Starting training...")
@@ -292,13 +294,17 @@ def train_retinanet(
         
         map50 = result['map_50'].item()
         map = result['map'].item()
+        precision = map50
+        recall = result['mar_100'].item()
         
-        print(f"Epoch {epoch+1} - Train Loss: {avg_train_loss:.4f}, mAP@50: {map50:.4f}, mAP: {map:.4f}")
+        print(f"Epoch {epoch+1} - Train Loss: {avg_train_loss:.4f}, mAP@50: {map50:.4f}, mAP: {map:.4f}, Precision: {precision:.4f}, Recall: {recall:.4f}")
         
         # NOTE: Validation loss = 0.0 is EXPECTED (TorchVision models don't compute loss in eval mode)
         metrics_history["val_loss"].append(0.0)
         metrics_history["val_ap50"].append(map50)
         metrics_history["val_ap"].append(map)
+        metrics_history["val_precision"].append(precision)
+        metrics_history["val_recall"].append(recall)
             
         lr_scheduler.step()
     
@@ -318,7 +324,9 @@ def train_retinanet(
                 'map50': metrics['val_ap50'][-1] if metrics['val_ap50'] else 0,
                 'map': metrics['val_ap'][-1] if metrics['val_ap'] else 0,
                 'mp': np.mean([m for m in metrics['val_ap50'][-5:]]) if metrics['val_ap50'] else 0,
-                'mr': np.mean([m for m in metrics['val_ap'][-5:]]) if metrics['val_ap'] else 0
+                'mr': np.mean([m for m in metrics['val_ap'][-5:]]) if metrics['val_ap'] else 0,
+                'precision': metrics['val_precision'][-1] if metrics['val_precision'] else 0,
+                'recall': metrics['val_recall'][-1] if metrics['val_recall'] else 0
             })()
     
     results = Results(metrics_history)
@@ -342,11 +350,11 @@ def main():
     # ---------------------------------------------------------
     # Run a RetinaNet training pipeline and log the results
     # ---------------------------------------------------------
-    tracker = ExperimentTracker(filepath="experiments_retinanet.json")
+    tracker = ExperimentTracker(filepath="experiments.json")
 
     dataset_path = "combined_dataset"
-    run_name = "retinanet_stage1"
-    epochs_to_run = 2
+    run_name = "retinanet-stage1-5epoch"
+    epochs_to_run = 5
     batch_size = 8
     img_size = 640
     learning_rate = 0.005
@@ -366,6 +374,8 @@ def main():
     final_map = getattr(results.box, "map", None)
     final_P = getattr(results.box, "mp", None)
     final_R = getattr(results.box, "mr", None)
+    final_precision = getattr(results.box, "precision", None)
+    final_recall = getattr(results.box, "recall", None)
 
     if final_map50 is None or final_map is None:
         raise RuntimeError("Unable to extract RetinaNet metrics from training results.")
@@ -378,9 +388,11 @@ def main():
         epochs=epochs_to_run,
         fraction=1.0,
         img_size=img_size,
-        P=final_P,
-        R=final_R
+        P=final_precision,
+        R=final_recall
     ))
+    
+    print(f"Final Precision: {final_precision:.4f}, Final Recall: {final_recall:.4f}")
 
     print(f"\nLogged {len(tracker)} RetinaNet experiments.")
     print(f"Best by mAP@50    : {tracker.best_by('map50')}")
