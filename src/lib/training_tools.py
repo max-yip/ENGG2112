@@ -119,8 +119,8 @@ def profile_object_sizes(dataset_path, sample_limit=6129, show_plot=True):
                 _, _, _, w, h = map(float, line.strip().split())
                 sizes.append(w * h)
                 
-    small_threshold = np.percentile(sizes, 15)  # Dynamic threshold
-    print(f"Calculated 15th percentile small threshold: {small_threshold:.4f}")
+    small_threshold = np.percentile(sizes, 20)  # Dynamic threshold
+    print(f"Calculated 20th percentile small threshold: {small_threshold:.4f}")
 
     if show_plot:
         plt.figure(figsize=(10, 5))
@@ -156,27 +156,128 @@ def generate_yaml_config(dataset_path, yaml_path="combined_local.yaml"):
         
     return yaml_path
 
-def train_yolo(yaml_path, yolo_model="yolov26n.pt", img_size = 640, epochs=40, batch_size=8, fraction=0.1, project_dir=".", run_name="stage1_all_data"):
+def generate_small_image_subset(dataset_path,
+                                small_threshold,
+                                output_txt_path="train_small.txt",
+                                yaml_path="c2a_small.yaml",
+                                sample_limit=12600,
+                                mosaic=1.0):
+    """Generate a small-object subset list and a YOLO data YAML config with auto-extension detection."""
+    import os
+    import yaml
+    from tqdm import tqdm
+
+    abs_dataset_path = os.path.abspath(dataset_path)
+    train_label_dir = os.path.join(abs_dataset_path, "labels", "train")
+    if not os.path.isdir(train_label_dir):
+        train_label_dir = os.path.join(abs_dataset_path, "train", "labels")
+
+    train_image_dir = os.path.join(abs_dataset_path, "images", "train")
+    if not os.path.isdir(train_image_dir):
+        train_image_dir = os.path.join(abs_dataset_path, "train", "images")
+
+    val_dir_name = os.path.join("images", "val")
+    abs_val_dir = os.path.join(abs_dataset_path, val_dir_name)
+    if not os.path.isdir(abs_val_dir):
+        val_dir_name = os.path.join("val", "images")
+
+    small_images = []
+    files = os.listdir(train_label_dir)[:sample_limit]
+
+    # Common image extensions to check
+    valid_extensions = ['.jpg', '.jpeg', '.png', '.JPG', '.PNG']
+
+    for label_file in tqdm(files, desc="Selecting Small Images"):
+        label_path = os.path.join(train_label_dir, label_file)
+        with open(label_path, "r") as f:
+            if any(
+                float(line.split()[3]) * float(line.split()[4]) < small_threshold
+                for line in f if line.strip()
+            ):
+                base_name = os.path.splitext(label_file)[0]
+                
+                # Auto-detect the correct extension
+                image_found = False
+                for ext in valid_extensions:
+                    potential_path = os.path.join(train_image_dir, base_name + ext)
+                    if os.path.exists(potential_path):
+                        small_images.append(potential_path)
+                        image_found = True
+                        break
+                
+                if not image_found:
+                    print(f"Warning: Image for {label_file} not found in {train_image_dir}")
+
+    abs_output_txt = os.path.abspath(output_txt_path)
+    with open(abs_output_txt, "w") as f:
+        f.write("\n".join(small_images))
+
+    small_yaml = {
+        "path": abs_dataset_path,
+        "train": abs_output_txt,
+        "val": val_dir_name,
+        "names": {0: "human"},
+        "nc": 1,
+        "augment": True,
+        "mosaic": mosaic
+    }
+
+    with open(yaml_path, "w") as f:
+        yaml.dump(small_yaml, f)
+
+    print(f"✅ Generated subset with {len(small_images)} images at {abs_output_txt}")
+    return abs_output_txt, yaml_path, small_images
+
+def train_yolo(yaml_path,
+               yolo_model="yolov26n.pt",
+               weights: str = None,
+               img_size: int = 640,
+               epochs: int = 40,
+               batch_size: int = 8,
+               fraction: float = 0.1,
+               project_dir: str = ".",
+               run_name: str = "stage1_all_data",
+               freeze: int = None,
+               box: float = None,
+               lr0: float = None,
+               warmup_epochs: float = None,
+               scale: float = None,
+               **kwargs):
     """Loads the YOLO model and begins the training loop."""
-    
+
     model = YOLO(yolo_model)
-    model.load("yolo26n.pt")
+    if weights:
+        model.load(weights)
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"Using device: {device}")
     print("About to start training...")
-    
-    results = model.train(
-        data=yaml_path,
-        epochs=epochs,
-        imgsz=img_size,
-        batch=batch_size,
-        fraction=fraction,
-        device=device,
-        project=project_dir,
-        name=run_name,
-        exist_ok=True
-    )
+
+    train_args = {
+        "data": yaml_path,
+        "epochs": epochs,
+        "imgsz": img_size,
+        "batch": batch_size,
+        "fraction": fraction,
+        "device": device,
+        "project": project_dir,
+        "name": run_name,
+        "exist_ok": True,
+    }
+
+    if freeze is not None:
+        train_args["freeze"] = freeze
+    if box is not None:
+        train_args["box"] = box
+    if lr0 is not None:
+        train_args["lr0"] = lr0
+    if warmup_epochs is not None:
+        train_args["warmup_epochs"] = warmup_epochs
+    if scale is not None:
+        train_args["scale"] = scale
+    train_args.update(kwargs)
+
+    results = model.train(**train_args)
     return results
 
 def plot_results(tracker: ExperimentTracker):
