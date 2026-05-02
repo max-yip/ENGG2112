@@ -141,7 +141,8 @@ def train_retinanet(
     
     # 2. OPTIMIZE DATALOADERS
     # Use multiple CPU cores and pin memory for faster CPU-to-GPU transfer
-    num_workers = min(os.cpu_count(), 8) if os.name != 'nt' else 4 # Safe default for Windows
+    # Windows: Use num_workers=0 to avoid worker spawn issues with kagglehub
+    num_workers = 0 if os.name == 'nt' else min(os.cpu_count(), 8)
     print(f"Using {num_workers} CPU workers for data loading.")
     
     train_loader = DataLoader(
@@ -218,6 +219,7 @@ def train_retinanet(
         # Training phase
         model.train()
         train_loss_sum = 0.0
+        valid_batches = 0
         
         for images, targets in tqdm(train_loader, desc=f"Epoch {epoch+1}/{epochs} - Training"):
             # Move data to GPU non-blocking
@@ -231,18 +233,34 @@ def train_retinanet(
                 loss_dict = model(images, targets)
                 losses = sum(loss for loss in loss_dict.values())
             
+            # CHECK FOR NaN/INF LOSS (prevents gradient explosion)
+            if torch.isnan(losses) or torch.isinf(losses):
+                print(f"⚠️  Skipping batch with invalid loss: {losses.item()}")
+                continue
+            
             train_loss_sum += losses.item()
+            valid_batches += 1
             
             if use_amp:
                 scaler.scale(losses).backward()
+                scaler.unscale_(optimizer)
+                torch.nn.utils.clip_grad_norm_(params, max_norm=10.0)
                 scaler.step(optimizer)
                 scaler.update()
             else:
                 losses.backward()
+                torch.nn.utils.clip_grad_norm_(params, max_norm=10.0)
                 optimizer.step()
         
         # Calculate average training loss
-        avg_train_loss = train_loss_sum / len(train_loader)
+        if valid_batches == 0:
+            avg_train_loss = 0.0
+            print(f"⚠️  WARNING: No valid training batches in epoch {epoch+1}!")
+        else:
+            avg_train_loss = train_loss_sum / valid_batches
+            skipped_batches = len(train_loader) - valid_batches
+            if skipped_batches > 0:
+                print(f"ℹ️  Skipped {skipped_batches}/{len(train_loader)} batches (invalid loss)")
         
         # Validation phase
         model.eval()
@@ -353,8 +371,8 @@ def main():
     tracker = ExperimentTracker(filepath="experiments.json")
 
     dataset_path = "combined_dataset"
-    run_name = "retinanet-stage1-5epoch"
-    epochs_to_run = 5
+    run_name = "retinanet-stage1-10epoch"
+    epochs_to_run = 10
     batch_size = 8
     img_size = 640
     learning_rate = 0.005
