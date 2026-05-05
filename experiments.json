@@ -66,6 +66,28 @@
     "R": 0.6979733764336282
   },
   {
+    "name": "retinanet-stage1-5epoch",
+    "model": "retinanet_resnet50",
+    "map50": 0.6237629055976868,
+    "map50_95": 0.331326961517334,
+    "epochs": 5,
+    "fraction": 1.0,
+    "img_size": 640,
+    "P": 0.6237629055976868,
+    "R": 0.4502003490924835
+  },
+  {
+    "name": "retinanet-stage1-10epoch",
+    "model": "retinanet_resnet50",
+    "map50": 0.6457425951957703,
+    "map50_95": 0.3490363359451294,
+    "epochs": 10,
+    "fraction": 1.0,
+    "img_size": 640,
+    "P": 0.6457425951957703,
+    "R": 0.46635469794273376
+  },
+  {
     "name": "faster_rcnn_10epochs",
     "model": "faster_rcnn_resnet50",
     "map50": 0.6714724898338318,
