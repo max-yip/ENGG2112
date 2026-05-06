@@ -10,6 +10,8 @@ from tqdm import tqdm
 import os
 import json
 import matplotlib.pyplot as plt
+from torchmetrics.detection.mean_ap import MeanAveragePrecision
+from torchvision.ops import box_iou
 
 from lib.dataset import merge_datasets, verify_dataset
 from lib.baseline_validation import run_baseline_validation
@@ -175,11 +177,15 @@ def train_faster_rcnn(
     # 3. INITIALIZE AMP SCALER
     scaler = torch.amp.GradScaler('cuda')
     
+    # Initialize MeanAveragePrecision metric
+    metric = MeanAveragePrecision(iou_type="bbox")
+    
     metrics_history = {
         "train_loss": [],
-        "val_loss": [],
-        "val_ap50": [],
-        "val_ap": []
+        "val_map50": [],
+        "val_map": [],
+        "val_precision": [],
+        "val_recall": []
     }
     
     print("Starting training...")
@@ -209,41 +215,108 @@ def train_faster_rcnn(
         avg_train_loss = train_loss_sum / len(train_loader)
         metrics_history["train_loss"].append(avg_train_loss)
         
-        # Validation phase - Only running every 2 epochs to save time
-        if (epoch + 1) % 2 == 0 or epoch == epochs - 1:
-            model.eval()
-            val_loss_sum = 0.0
-            all_predictions = []
-            all_targets = []
-            
-            with torch.no_grad():
-                for images, targets in tqdm(val_loader, desc=f"Epoch {epoch+1}/{epochs} - Validation"):
-                    images = [img.to(device, non_blocking=True) for img in images]
-                    targets = [{k: v.to(device, non_blocking=True) for k, v in t.items()} for t in targets]
+        model.eval()
+        all_predictions = []
+        all_targets = []
+        
+        # Reset metric for this epoch
+        metric.reset()
+        
+        # Initialize precision/recall calculation variables
+        total_tp = total_fp = total_fn = 0
+        score_thresh = 0.5  # confidence threshold for predictions
+        pr_iou_thresh = 0.5  # IoU threshold for precision/recall
+        
+        with torch.no_grad():
+            for images, targets in tqdm(val_loader, desc=f"Epoch {epoch+1}/{epochs} - Validation"):
+                images = [img.to(device, non_blocking=True) for img in images]
+                targets = [{k: v.to(device, non_blocking=True) for k, v in t.items()} for t in targets]
+                
+                # AMP for validation forward pass too
+                with torch.amp.autocast('cuda'):
+                    predictions = model(images)
+                
+                # Format predictions and targets for MeanAveragePrecision
+                formatted_predictions = []
+                formatted_targets = []
+                
+                for pred in predictions:
+                    formatted_predictions.append({
+                        "boxes": pred["boxes"].cpu(),
+                        "scores": pred["scores"].cpu(),
+                        "labels": pred["labels"].cpu()
+                    })
+                
+                for target in targets:
+                    formatted_targets.append({
+                        "boxes": target["boxes"].cpu(),
+                        "labels": target["labels"].cpu()
+                    })
+                
+                all_predictions.extend(formatted_predictions)
+                all_targets.extend(formatted_targets)
+                
+                # Calculate precision/recall for this batch
+                for output, target in zip(predictions, targets):
+                    gt_boxes = target["boxes"].to(device)
                     
-                    # AMP for validation forward pass too
-                    with torch.amp.autocast('cuda'):
-                        predictions = model(images)
+                    # Predictions
+                    boxes = output["boxes"].to(device)
+                    scores = output["scores"].to(device)
                     
-                    all_predictions.extend(predictions)
-                    all_targets.extend(targets)
-            
-            avg_confidence = []
-            for pred in all_predictions:
-                if len(pred["scores"]) > 0:
-                    avg_confidence.append(pred["scores"].mean().item())
-            
-            ap50_approx = np.mean(avg_confidence) if avg_confidence else 0.0
-            ap_approx = ap50_approx * 0.8  
-            
-            metrics_history["val_loss"].append(val_loss_sum)
-            metrics_history["val_ap50"].append(ap50_approx)
-            metrics_history["val_ap"].append(ap_approx)
-            
-            print(f"Epoch {epoch+1} - Train Loss: {avg_train_loss:.4f}, AP@50: {ap50_approx:.4f}")
-        else:
-            print(f"Epoch {epoch+1} - Train Loss: {avg_train_loss:.4f} (Skipped Validation)")
-            
+                    keep = scores >= score_thresh
+                    boxes = boxes[keep]
+                    scores = scores[keep]
+                    
+                    # ----- Precision / Recall calculation -----
+                    if len(boxes) == 0:
+                        total_fn += len(gt_boxes)
+                        continue
+                    
+                    if len(gt_boxes) == 0:
+                        # All predictions are false positives when no ground truths
+                        total_fp += len(boxes)
+                        continue
+                    
+                    ious = box_iou(boxes, gt_boxes)
+                    matched_gt = set()
+                    tp = fp = 0
+                    
+                    for i in range(len(boxes)):
+                        max_iou, gt_idx = torch.max(ious[i], dim=0)
+                        if max_iou >= pr_iou_thresh and gt_idx.item() not in matched_gt:
+                            tp += 1
+                            matched_gt.add(gt_idx.item())
+                        else:
+                            fp += 1
+                    
+                    fn = len(gt_boxes) - len(matched_gt)
+                    
+                    total_tp += tp
+                    total_fp += fp
+                    total_fn += fn
+        
+        # Update metric with all predictions and targets
+        metric.update(all_predictions, all_targets)
+        
+        # Compute final metrics
+        result = metric.compute()
+        
+        map50 = result['map_50'].item() if result['map_50'] is not None else 0.0
+        map_value = result['map'].item() if result['map'] is not None else 0.0
+        
+        # Calculate precision and recall using IoU 0.5
+        precision = total_tp / (total_tp + total_fp + 1e-6)
+        recall = total_tp / (total_tp + total_fn + 1e-6)
+        
+        metrics_history["train_loss"].append(avg_train_loss)
+        metrics_history["val_map50"].append(map50)
+        metrics_history["val_map"].append(map_value)
+        metrics_history["val_precision"].append(precision)
+        metrics_history["val_recall"].append(recall)
+        
+        print(f"Epoch {epoch+1}/{epochs} - Train Loss: {avg_train_loss:.4f} | mAP@50: {map50:.4f} | mAP: {map_value:.4f} | Precision: {precision:.4f} | Recall: {recall:.4f}")
+
         lr_scheduler.step()
     
     # Save model
@@ -259,10 +332,10 @@ def train_faster_rcnn(
     class Results:
         def __init__(self, metrics):
             self.box = type('obj', (object,), {
-                'map50': metrics['val_ap50'][-1] if metrics['val_ap50'] else 0,
-                'map': metrics['val_ap'][-1] if metrics['val_ap'] else 0,
-                'mp': np.mean([m for m in metrics['val_ap50'][-5:]]) if metrics['val_ap50'] else 0,
-                'mr': np.mean([m for m in metrics['val_ap'][-5:]]) if metrics['val_ap'] else 0
+                'map50': metrics['val_map50'][-1] if metrics['val_map50'] else 0,
+                'map': metrics['val_map'][-1] if metrics['val_map'] else 0,
+                'mp': np.mean([m for m in metrics['val_precision'][-5:]]) if metrics['val_precision'] else 0,
+                'mr': np.mean([m for m in metrics['val_recall'][-5:]]) if metrics['val_recall'] else 0
             })()
     
     results = Results(metrics_history)
@@ -286,11 +359,11 @@ def main():
     # ---------------------------------------------------------
     # Run a Faster R-CNN training pipeline and log the results
     # ---------------------------------------------------------
-    tracker = ExperimentTracker(filepath="experiments_faster_rcnn.json")
+    tracker = ExperimentTracker(filepath="experiments.json")
 
     dataset_path = "combined_dataset"
-    run_name = "faster_rcnn_stage1"
-    epochs_to_run = 5
+    run_name = "faster_rcnn_20epochs"
+    epochs_to_run = 20
     batch_size = 8
     img_size = 640
     learning_rate = 0.005
