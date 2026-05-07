@@ -38,7 +38,7 @@ def main():
         dataset_path,
         small_threshold,
         output_txt_path="train_small.txt",
-        yaml_path="c2a_small.yaml",
+        yaml_path="dataset_small.yaml",
         sample_limit=12600,
         mosaic=1.0 # image_ext removed as it is now auto-detected
     )

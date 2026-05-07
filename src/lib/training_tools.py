@@ -286,10 +286,15 @@ def plot_results(tracker: ExperimentTracker):
         print("No data to plot.")
         return
 
-    names = [exp.name for exp in tracker.runs]
-    models = [exp.model for exp in tracker.runs]
-    map50 = [exp.map50 for exp in tracker.runs]
-    map50_95 = [exp.map50_95 for exp in tracker.runs]
+    # Sort experiments by mAP@50-95 in descending order
+    sorted_exps = sorted(tracker.runs, key=lambda exp: exp.map50_95, reverse=True)
+    
+    names = [exp.name for exp in sorted_exps]
+    models = [exp.model for exp in sorted_exps]
+    epochs = [exp.epochs for exp in sorted_exps]
+    img_sizes = [exp.img_size for exp in sorted_exps]
+    map50 = [exp.map50 for exp in sorted_exps]
+    map50_95 = [exp.map50_95 for exp in sorted_exps]
 
     x = range(len(names))
     width = 0.38
@@ -308,7 +313,7 @@ def plot_results(tracker: ExperimentTracker):
                 f"{bar.get_height():.3f}", ha='center', va='bottom', fontsize=7.5)
 
     ax.set_xticks(list(x))
-    ax.set_xticklabels([f"{n}\n({m})" for n, m in zip(names, models)], fontsize=8)
+    ax.set_xticklabels([f"{m}_{e}_{s}" for m, e, s in zip(models, epochs, img_sizes)], fontsize=8,rotation=45)
     
     # Dynamically scale Y-axis based on data
     ax.set_ylim(min(map50_95) - 0.1, 1.0)
