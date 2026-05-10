@@ -23,11 +23,11 @@ def main():
 
     dataset_path = "combined_dataset"
     yaml_config_path = "combined_local.yaml"
-    run_name = "yolo26n-800px"
+    run_name = "yolo26n-960px"
     yolo_model_name = "yolo26n.pt"
     epochs_to_run = 40
     fraction_size = 1 #0 to 1
-    image_size = 800
+    image_size = 960
 
     # Generate or refresh the YAML config from the current dataset
     generate_yaml_config(dataset_path, yaml_path=yaml_config_path)
