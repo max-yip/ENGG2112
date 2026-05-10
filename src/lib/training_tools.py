@@ -159,15 +159,18 @@ def generate_yaml_config(dataset_path, yaml_path="combined_local.yaml"):
 def generate_small_image_subset(dataset_path,
                                 small_threshold,
                                 output_txt_path="train_small.txt",
-                                yaml_path="c2a_small.yaml",
+                                yaml_path="dataset_small.yaml",
                                 sample_limit=12600,
-                                mosaic=1.0):
-    """Generate a small-object subset list and a YOLO data YAML config with auto-extension detection."""
+                                mosaic=0.0,
+                                small_objects=True):
+    """Generate a small-object subset list and a YOLO data YAML config with P2 head support."""
     import os
     import yaml
     from tqdm import tqdm
 
     abs_dataset_path = os.path.abspath(dataset_path)
+    
+    # Resolve directory paths for labels and images
     train_label_dir = os.path.join(abs_dataset_path, "labels", "train")
     if not os.path.isdir(train_label_dir):
         train_label_dir = os.path.join(abs_dataset_path, "train", "labels")
@@ -183,20 +186,17 @@ def generate_small_image_subset(dataset_path,
 
     small_images = []
     files = os.listdir(train_label_dir)[:sample_limit]
-
-    # Common image extensions to check
     valid_extensions = ['.jpg', '.jpeg', '.png', '.JPG', '.PNG']
 
     for label_file in tqdm(files, desc="Selecting Small Images"):
         label_path = os.path.join(train_label_dir, label_file)
         with open(label_path, "r") as f:
+            # Check if any object in the file is below the area threshold
             if any(
                 float(line.split()[3]) * float(line.split()[4]) < small_threshold
                 for line in f if line.strip()
             ):
                 base_name = os.path.splitext(label_file)[0]
-                
-                # Auto-detect the correct extension
                 image_found = False
                 for ext in valid_extensions:
                     potential_path = os.path.join(train_image_dir, base_name + ext)
@@ -212,6 +212,7 @@ def generate_small_image_subset(dataset_path,
     with open(abs_output_txt, "w") as f:
         f.write("\n".join(small_images))
 
+    # Construct the YAML dictionary with the critical small_objects flag
     small_yaml = {
         "path": abs_dataset_path,
         "train": abs_output_txt,
@@ -219,7 +220,8 @@ def generate_small_image_subset(dataset_path,
         "names": {0: "human"},
         "nc": 1,
         "augment": True,
-        "mosaic": mosaic
+        "mosaic": mosaic,
+        "small_objects": small_objects  # Fixes the 606/708 weight transfer issue
     }
 
     with open(yaml_path, "w") as f:

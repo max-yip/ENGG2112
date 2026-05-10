@@ -24,12 +24,12 @@ def main():
     tracker = ExperimentTracker()
 
     dataset_path = "combined_dataset"
-    yolo_model_name = "yolo26n-p2.yaml"
-    baseline_weights = r"C:\Users\maxyi\Documents\ENGG2112\runs\detect\yolo26-hyperparams_baseline\weights\best.pt"
-    run_name = "yolo26n-stage2-p2"
-    epochs_to_run = 40
+    baseline_weights = r"C:\Users\maxyi\Documents\ENGG2112\runs\detect\yolo26n-960px\weights\best.pt"
+    yolo_model_name = baseline_weights
+    run_name = "yolo26n-stage2-960px-ver2"
+    epochs_to_run = 30
     fraction_size = 1
-    image_size = 640
+    image_size = 960
     batch_size = 4
 
     # Generate small-object subset and YAML config
@@ -40,25 +40,26 @@ def main():
         output_txt_path="train_small.txt",
         yaml_path="dataset_small.yaml",
         sample_limit=12600,
-        mosaic=1.0 # image_ext removed as it is now auto-detected
+        mosaic=0.0,           # Set to 0.0 to prevent shrinking objects further
+        small_objects=True     # CRITICAL: Ensures the P2 head architecture matches Stage 1
     )
 
     # Train using the small-object dataset and pretrained baseline weights
     results = train_yolo(
         yaml_path=small_yaml_path,
         yolo_model=yolo_model_name,
-        weights=baseline_weights,
+        weights=None,
         img_size=image_size,
         epochs=epochs_to_run,
         batch_size=batch_size,
         fraction=fraction_size,
         project_dir=".",
-        run_name=run_name,
-        freeze=10, #to avoid catastrophic forgetting, freeze the backbone weight while getting the p2 head up to speed
-        box=9, #more rigorous box for small objects since deviation will result in lower map
-        lr0=0.005, #slower learning rate
-        warmup_epochs=5, #increase warmup from 3 to 5 to avoid sudden jump
-        scale=0.9 # scale objects increasing the size helps with training
+        run_name=run_name
+        # freeze=10, #to avoid catastrophic forgetting, freeze the backbone weight while getting the p2 head up to speed
+        # box=8, #more rigorous box for small objects since deviation will result in lower map
+        # lr0=0.004, #slower learning rate
+        # warmup_epochs=4, #increase warmup from 3 to 5 to avoid sudden jump
+        # scale=0.9 # scale objects increasing the size helps with training
     )
 
     final_map50 = getattr(results.box, "map50", None)
@@ -71,7 +72,7 @@ def main():
 
     tracker.log(Experiment(
         name=run_name,
-        model="yolov26n-p2",
+        model="yolov26n",
         map50=final_map50,
         map50_95=final_map50_95,
         epochs=epochs_to_run,

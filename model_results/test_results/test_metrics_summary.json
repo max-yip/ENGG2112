@@ -1,13 +1,13 @@
 {
-    "model": "runs/detect/yolo26-1pass-fixed-dataset/weights/best.pt",
+    "model": "runs/detect/yolo26n-stage2-960px-ver2/weights/best.pt",
     "dataset_config": "combined_local.yaml",
-    "image_size": 800,
+    "image_size": 960,
     "metrics": {
-        "Precision": 0.7941280080124022,
-        "Recall": 0.6000600570542015,
-        "mAP@50": 0.6562115436788147,
-        "mAP@50-95": 0.39620691193674706,
-        "F1_Score": 0.6835866235595482,
-        "Fitness": 0.39620691193674706
+        "Precision": 0.8166638958861931,
+        "Recall": 0.64711475902107,
+        "mAP@50": 0.7058583221813762,
+        "mAP@50-95": 0.44924310475700835,
+        "F1_Score": 0.7220694158658508,
+        "Fitness": 0.44924310475700835
     }
 }

@@ -1,8 +1,9 @@
 augment: true
-mosaic: 1.0
+mosaic: 0.0
 names:
   0: human
 nc: 1
 path: C:\Users\maxyi\Documents\ENGG2112\combined_dataset
+small_objects: true
 train: C:\Users\maxyi\Documents\ENGG2112\train_small.txt
 val: images\val
