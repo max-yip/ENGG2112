@@ -23,11 +23,11 @@ def main():
 
     dataset_path = "combined_dataset"
     yaml_config_path = "combined_local.yaml"
-    run_name = "yolo26n-960px"
-    yolo_model_name = "yolo26n.pt"
+    run_name = "yolo26s-960px"
+    yolo_model_name = "yolo26s.pt"
     epochs_to_run = 40
     fraction_size = 1 #0 to 1
-    image_size = 960
+    image_size = 640
 
     # Generate or refresh the YAML config from the current dataset
     generate_yaml_config(dataset_path, yaml_path=yaml_config_path)
@@ -54,7 +54,7 @@ def main():
 
     tracker.log(Experiment(
         name=run_name,
-        model="yolov26n",
+        model="yolov26s",
         map50=final_map50,
         map50_95=final_map50_95,
         epochs=epochs_to_run,

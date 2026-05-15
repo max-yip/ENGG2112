@@ -104,7 +104,7 @@ if __name__ == '__main__':
     # Update 'model_path' to point to wherever your best weights were saved.
     # By default, Ultralytics saves them in runs/detect/<run_name>/weights/best.pt
     
-    TARGET_MODEL_PATH = "runs/detect/yolo26n-stage2-960px-ver2/weights/best.pt" 
+    TARGET_MODEL_PATH = "runs/detect/yolo26n-960px/weights/best.pt" 
     YAML_CONFIG = "combined_local.yaml"
     IMAGE_SIZE = 960
     OUTPUT_DIR = "model_results"  # Change this to save to a different directory

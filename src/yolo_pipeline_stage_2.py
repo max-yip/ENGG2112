@@ -24,13 +24,13 @@ def main():
     tracker = ExperimentTracker()
 
     dataset_path = "combined_dataset"
-    baseline_weights = r"C:\Users\maxyi\Documents\ENGG2112\runs\detect\yolo26n-960px\weights\best.pt"
+    baseline_weights = r"C:\Users\maxyi\Documents\ENGG2112\runs\detect\yolo26s-640px\weights\best.pt"
     yolo_model_name = baseline_weights
-    run_name = "yolo26n-stage2-960px-ver2"
-    epochs_to_run = 30
+    run_name = "yolo26s-640s2-40e"
+    epochs_to_run = 40
     fraction_size = 1
-    image_size = 960
-    batch_size = 4
+    image_size = 640
+    batch_size = 8
 
     # Generate small-object subset and YAML config
     _, small_threshold = profile_object_sizes(dataset_path, sample_limit=12600, show_plot=False)
@@ -54,9 +54,9 @@ def main():
         batch_size=batch_size,
         fraction=fraction_size,
         project_dir=".",
-        run_name=run_name
-        # freeze=10, #to avoid catastrophic forgetting, freeze the backbone weight while getting the p2 head up to speed
-        # box=8, #more rigorous box for small objects since deviation will result in lower map
+        run_name=run_name,
+        freeze=5, #to avoid catastrophic forgetting, freeze the backbone weight while getting the p2 head up to speed
+        box=8 #more rigorous box for small objects since deviation will result in lower map
         # lr0=0.004, #slower learning rate
         # warmup_epochs=4, #increase warmup from 3 to 5 to avoid sudden jump
         # scale=0.9 # scale objects increasing the size helps with training
