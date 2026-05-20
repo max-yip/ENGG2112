@@ -1,13 +1,106 @@
-{
-    "model": "runs/detect/yolo26n-960px/weights/best.pt",
-    "dataset_config": "combined_local.yaml",
-    "image_size": 960,
-    "metrics": {
-        "Precision": 0.8222413854432927,
-        "Recall": 0.6449326860517491,
-        "mAP@50": 0.7057164652261192,
-        "mAP@50-95": 0.45212847250966454,
-        "F1_Score": 0.7228726218153256,
-        "Fitness": 0.45212847250966454
+[
+    {
+        "model": "yolo26n.pt",
+        "dataset_config": "combined_local.yaml",
+        "image_size": 640,
+        "metrics": {
+            "Precision": 0.32880485136624493,
+            "Recall": 0.17018911216894508,
+            "mAP@50": 0.12453968588745297,
+            "mAP@50-95": 0.05625522263911962,
+            "F1_Score": 0.22428685586088826,
+            "Fitness": 0.05625522263911962
+        }
+    },
+    {
+        "model": "runs/detect/yolo26-hyperparams_baseline/weights/best.pt",
+        "dataset_config": "combined_local.yaml",
+        "image_size": 640,
+        "metrics": {
+            "Precision": 0.7921378392919327,
+            "Recall": 0.5828937490616085,
+            "mAP@50": 0.6342362820084387,
+            "mAP@50-95": 0.3720785191137407,
+            "F1_Score": 0.67159454812822,
+            "Fitness": 0.3720785191137407
+        }
+    },
+    {
+        "model": "runs/detect/yolo26n-800px/weights/best.pt",
+        "dataset_config": "combined_local.yaml",
+        "image_size": 800,
+        "metrics": {
+            "Precision": 0.809895220224595,
+            "Recall": 0.6189216777136693,
+            "mAP@50": 0.6772202679192767,
+            "mAP@50-95": 0.41711355109967474,
+            "F1_Score": 0.7016453380056222,
+            "Fitness": 0.41711355109967474
+        }
+    },
+    {
+        "model": "runs/detect/yolo26n-960px/weights/best.pt",
+        "dataset_config": "combined_local.yaml",
+        "image_size": 960,
+        "metrics": {
+            "Precision": 0.8222413854432927,
+            "Recall": 0.6449326860517491,
+            "mAP@50": 0.7057164652261192,
+            "mAP@50-95": 0.45212847250966454,
+            "F1_Score": 0.7228726218153256,
+            "Fitness": 0.45212847250966454
+        }
+    },
+    {
+        "model": "runs/detect/yolo26n-stage2-960px-ver2/weights/best.pt",
+        "dataset_config": "combined_local.yaml",
+        "image_size": 960,
+        "metrics": {
+            "Precision": 0.8166638958861931,
+            "Recall": 0.64711475902107,
+            "mAP@50": 0.7058583221813762,
+            "mAP@50-95": 0.44924310475700835,
+            "F1_Score": 0.7220694158658508,
+            "Fitness": 0.44924310475700835
+        }
+    },
+    {
+        "model": "runs/detect/yolo26s-640px/weights/best.pt",
+        "dataset_config": "combined_local.yaml",
+        "image_size": 640,
+        "metrics": {
+            "Precision": 0.8290389164247716,
+            "Recall": 0.641559481507432,
+            "mAP@50": 0.7007388352357171,
+            "mAP@50-95": 0.4461821168130882,
+            "F1_Score": 0.7233482865814148,
+            "Fitness": 0.4461821168130882
+        }
+    },
+    {
+        "model": "runs/detect/retinanet-stage1-10epoch/model.pt",
+        "model_type": "retinanet",
+        "dataset_path": "combined_dataset",
+        "image_size": 640,
+        "metrics": {
+            "Precision": 0.7474481503031752,
+            "Recall": 0.46029728241369006,
+            "mAP@50": 0.4757053852081299,
+            "mAP@50-95": 0.26050081849098206,
+            "F1_Score": 0.5697360687801707
+        }
+    },
+    {
+        "model": "runs/detect/faster_rcnn_10epochs/model.pt",
+        "model_type": "faster_rcnn",
+        "dataset_path": "combined_dataset",
+        "image_size": 640,
+        "metrics": {
+            "Precision": 0.6817875690216295,
+            "Recall": 0.45598318402025945,
+            "mAP@50": 0.45077311992645264,
+            "mAP@50-95": 0.22910884022712708,
+            "F1_Score": 0.5464780888025251
+        }
     }
-}
+]

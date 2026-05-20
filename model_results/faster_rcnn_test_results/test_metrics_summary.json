@@ -1,0 +1,15 @@
+[
+    {
+        "model": "runs/detect/faster_rcnn_10epochs/model.pt",
+        "model_type": "faster_rcnn",
+        "dataset_path": "combined_dataset",
+        "image_size": 640,
+        "metrics": {
+            "Precision": 0.6817875690216295,
+            "Recall": 0.45598318402025945,
+            "mAP@50": 0.45077311992645264,
+            "mAP@50-95": 0.22910884022712708,
+            "F1_Score": 0.5464780888025251
+        }
+    }
+]
