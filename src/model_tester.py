@@ -405,49 +405,86 @@ if __name__ == '__main__':
     # By default, Ultralytics saves them in runs/detect/<run_name>/weights/best.pt
     
     # # --- Test YOLO Model ---
-    # print("\n" + "="*60)
-    # print("TESTING YOLO MODEL")
-    # print("="*60)
-    # YOLO_MODEL_PATH = "runs/detect/yolo26s-640px/weights/best.pt" 
-    YAML_CONFIG = "combined_local.yaml"
+    print("\n" + "="*60)
+    print("TESTING YOLO MODEL")
+    print("="*60)
+    YOLO_MODEL_PATH_1 = "yolo26n.pt"
+    YOLO_MODEL_PATH_2 = "runs/detect/yolo26-hyperparams_baseline/weights/best.pt"
+    YOLO_MODEL_PATH_3 = "runs/detect/yolo26n-800px/weights/best.pt"
+    YOLO_MODEL_PATH_4 = "runs/detect/yolo26n-960px/weights/best.pt"
+    YOLO_MODEL_PATH_5 = "runs/detect/yolo26n-stage2-960px-ver2/weights/best.pt"
+    YOLO_MODEL_PATH_6 = "runs/detect/yolo26s-640px/weights/best.pt"
+    YAML_CONFIG = "combined_corrupted.yaml"
     IMAGE_SIZE = 640
     OUTPUT_DIR = "model_results"
     
-    # test_model(
-    #     model_path=YOLO_MODEL_PATH,
-    #     yaml_path=YAML_CONFIG,
+    test_model(
+        model_path=YOLO_MODEL_PATH_2,
+        yaml_path=YAML_CONFIG,
+        img_size=640,
+        output_dir=OUTPUT_DIR,
+        output_name="corrupted_test_results"
+    )
+
+    test_model(
+        model_path=YOLO_MODEL_PATH_3,
+        yaml_path=YAML_CONFIG,
+        img_size=800,
+        output_dir=OUTPUT_DIR,
+        output_name="corrupted_test_results"
+    )
+
+    test_model(
+        model_path=YOLO_MODEL_PATH_4,
+        yaml_path=YAML_CONFIG,
+        img_size=960,
+        output_dir=OUTPUT_DIR,
+        output_name="corrupted_test_results"
+    )
+
+    test_model(
+        model_path=YOLO_MODEL_PATH_5,
+        yaml_path=YAML_CONFIG,
+        img_size=960,
+        output_dir=OUTPUT_DIR,
+        output_name="corrupted_test_results"
+    )
+
+    test_model(
+        model_path=YOLO_MODEL_PATH_6,
+        yaml_path=YAML_CONFIG,
+        img_size=960,
+        output_dir=OUTPUT_DIR,
+        output_name="corrupted_test_results"
+    )
+    
+    # # --- Test Faster RCNN Model ---
+    # print("\n" + "="*60)
+    # print("TESTING FASTER RCNN MODEL")
+    # print("="*60)
+    # FASTER_RCNN_PATH = "runs/detect/faster_rcnn_10epochs/model.pt"
+    # DATASET_PATH = "combined_dataset"
+    
+    # test_pytorch_model(
+    #     model_path=FASTER_RCNN_PATH,
+    #     model_type="faster_rcnn",
+    #     dataset_path=DATASET_PATH,
     #     img_size=IMAGE_SIZE,
-    #     output_dir=OUTPUT_DIR,
-    #     output_name="yolo_test_results"
+    #     output_name="corrupted_test_results",
+    #     output_dir=OUTPUT_DIR
     # )
     
-    # --- Test Faster RCNN Model ---
-    print("\n" + "="*60)
-    print("TESTING FASTER RCNN MODEL")
-    print("="*60)
-    FASTER_RCNN_PATH = "runs/detect/faster_rcnn_10epochs/model.pt"
-    DATASET_PATH = "combined_dataset"
+    # # --- Test RetinaNet Model ---
+    # print("\n" + "="*60)
+    # print("TESTING RETINANET MODEL")
+    # print("="*60)
+    # RETINANET_PATH = "runs/detect/retinanet-stage1-10epoch/model.pt"
     
-    test_pytorch_model(
-        model_path=FASTER_RCNN_PATH,
-        model_type="faster_rcnn",
-        dataset_path=DATASET_PATH,
-        img_size=IMAGE_SIZE,
-        output_name="faster_rcnn_test_results",
-        output_dir=OUTPUT_DIR
-    )
-    
-    # --- Test RetinaNet Model ---
-    print("\n" + "="*60)
-    print("TESTING RETINANET MODEL")
-    print("="*60)
-    RETINANET_PATH = "runs/detect/retinanet-stage1-10epoch/model.pt"
-    
-    test_pytorch_model(
-        model_path=RETINANET_PATH,
-        model_type="retinanet",
-        dataset_path=DATASET_PATH,
-        img_size=IMAGE_SIZE,
-        output_name="retinanet_test_results",
-        output_dir=OUTPUT_DIR
-    )
+    # test_pytorch_model(
+    #     model_path=RETINANET_PATH,
+    #     model_type="retinanet",
+    #     dataset_path=DATASET_PATH,
+    #     img_size=IMAGE_SIZE,
+    #     output_name="corrupted_test_results",
+    #     output_dir=OUTPUT_DIR
+    # )
