@@ -13,7 +13,7 @@
         }
     },
     {
-        "model": "runs/detect/yolo26-hyperparams_baseline/weights/best.pt",
+        "model": "runs/detect/yolo26n-640px-40ep/weights/best.pt",
         "dataset_config": "combined_local.yaml",
         "image_size": 640,
         "metrics": {
@@ -26,7 +26,7 @@
         }
     },
     {
-        "model": "runs/detect/yolo26n-800px/weights/best.pt",
+        "model": "runs/detect/yolo26n-800px-40ep/weights/best.pt",
         "dataset_config": "combined_local.yaml",
         "image_size": 800,
         "metrics": {
@@ -39,7 +39,7 @@
         }
     },
     {
-        "model": "runs/detect/yolo26n-960px/weights/best.pt",
+        "model": "runs/detect/yolo26n-960px-40ep/weights/best.pt",
         "dataset_config": "combined_local.yaml",
         "image_size": 960,
         "metrics": {
@@ -52,7 +52,7 @@
         }
     },
     {
-        "model": "runs/detect/yolo26n-stage2-960px-ver2/weights/best.pt",
+        "model": "runs/detect/yolo26n-960px-stage2/weights/best.pt",
         "dataset_config": "combined_local.yaml",
         "image_size": 960,
         "metrics": {
@@ -65,20 +65,7 @@
         }
     },
     {
-        "model": "runs/detect/yolo26s-640px/weights/best.pt",
-        "dataset_config": "combined_local.yaml",
-        "image_size": 640,
-        "metrics": {
-            "Precision": 0.8290389164247716,
-            "Recall": 0.641559481507432,
-            "mAP@50": 0.7007388352357171,
-            "mAP@50-95": 0.4461821168130882,
-            "F1_Score": 0.7233482865814148,
-            "Fitness": 0.4461821168130882
-        }
-    },
-    {
-        "model": "runs/detect/retinanet-stage1-10epoch/model.pt",
+        "model": "runs/detect/retinanet-10ep/model.pt",
         "model_type": "retinanet",
         "dataset_path": "combined_dataset",
         "image_size": 640,
@@ -91,7 +78,7 @@
         }
     },
     {
-        "model": "runs/detect/faster_rcnn_10epochs/model.pt",
+        "model": "runs/detect/faster_rcnn_10ep/model.pt",
         "model_type": "faster_rcnn",
         "dataset_path": "combined_dataset",
         "image_size": 640,

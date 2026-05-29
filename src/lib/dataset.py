@@ -55,7 +55,6 @@ def convert_visdrone(txt_path, img_w, img_h):
                 
     return yolo_lines
 
-
 def process_c2a(img_dir, label_dir, split):
     count = 0
     if not os.path.exists(img_dir):

@@ -13,7 +13,7 @@
         }
     },
     {
-        "model": "runs/detect/faster_rcnn_10epochs/model.pt",
+        "model": "runs/detect/faster_rcnn_10ep/model.pt",
         "model_type": "faster_rcnn",
         "dataset_path": "combined_dataset",
         "image_size": 640,
@@ -26,7 +26,7 @@
         }
     },
     {
-        "model": "runs/detect/retinanet-stage1-10epoch/model.pt",
+        "model": "runs/detect/retinanet-10ep/model.pt",
         "model_type": "retinanet",
         "dataset_path": "combined_dataset",
         "image_size": 640,
@@ -39,7 +39,7 @@
         }
     },
     {
-        "model": "runs/detect/yolo26-hyperparams_baseline/weights/best.pt",
+        "model": "runs/detect/yolo26n-640px-40ep/weights/best.pt",
         "dataset_config": "combined_corrupted.yaml",
         "image_size": 640,
         "metrics": {
@@ -52,7 +52,7 @@
         }
     },
     {
-        "model": "runs/detect/yolo26n-800px/weights/best.pt",
+        "model": "runs/detect/yolo26n-800px-40ep/weights/best.pt",
         "dataset_config": "combined_corrupted.yaml",
         "image_size": 800,
         "metrics": {
@@ -65,7 +65,7 @@
         }
     },
     {
-        "model": "runs/detect/yolo26n-960px/weights/best.pt",
+        "model": "runs/detect/yolo26n-960px-40ep/weights/best.pt",
         "dataset_config": "combined_corrupted.yaml",
         "image_size": 960,
         "metrics": {
@@ -78,7 +78,7 @@
         }
     },
     {
-        "model": "runs/detect/yolo26n-stage2-960px-ver2/weights/best.pt",
+        "model": "runs/detect/yolo26n-960px-stage2/weights/best.pt",
         "dataset_config": "combined_corrupted.yaml",
         "image_size": 960,
         "metrics": {
@@ -88,19 +88,6 @@
             "mAP@50-95": 0.1433493627826758,
             "F1_Score": 0.4250412627350542,
             "Fitness": 0.1433493627826758
-        }
-    },
-    {
-        "model": "runs/detect/yolo26s-640px/weights/best.pt",
-        "dataset_config": "combined_corrupted.yaml",
-        "image_size": 960,
-        "metrics": {
-            "Precision": 0.49537828997407257,
-            "Recall": 0.3569591111555978,
-            "mAP@50": 0.32467825041946763,
-            "mAP@50-95": 0.130116682624012,
-            "F1_Score": 0.41492861014019466,
-            "Fitness": 0.130116682624012
         }
     }
 ]

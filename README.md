@@ -31,21 +31,28 @@ Codebase for ENGG2112 group project
 
 ## Running the Pipeline
 
-To run the complete pipeline, execute the scripts in the following order:
+To run the available pipeline scripts, use the actual files in the repository:
 
 1. Merge the datasets:
    ```bash
-   python src/merge_dataset.py
+   python src/lib/dataset.py
    ```
 
-2. Run baseline validation:
+2. Run baseline validation on the merged dataset:
    ```bash
-   python src/baseline_validation.py
+   python src/lib/baseline_validation.py
    ```
 
-3. Run the main training script which basically do both steps 1 and 2:
+3. Run the YOLO training pipeline:
    ```bash
-   python src/main.py
+   python src/yolo_pipeline.py
    ```
 
-4. An example training_pipeline is in ```experiment_tracker.py```. Currently under construction
+4. Optional alternative pipeline entry points:
+   ```bash
+   python src/faster_rcnn_pipeline.py
+   python src/retinanet_pipeline.py
+   python src/yolo_pipeline_stage_2.py
+   ```
+
+These scripts use the local dataset config files such as `combined_local.yaml` and `dataset_local.yaml`, and the provided YOLO weights like `yolov8n.pt`, `yolo26s.pt`, and `yolo26n.pt`. If you want to rebuild the merged dataset, delete `combined_dataset/` before rerunning `src/lib/dataset.py`.
