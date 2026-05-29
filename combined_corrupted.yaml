@@ -1,0 +1,9 @@
+augment: true
+names:
+  0: human
+nc: 1
+path: combined_dataset_corrupted
+small_objects: true
+test: images\test
+train: images\train
+val: images\val

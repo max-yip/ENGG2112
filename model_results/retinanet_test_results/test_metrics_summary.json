@@ -1,0 +1,15 @@
+[
+    {
+        "model": "runs/detect/retinanet-stage1-10epoch/model.pt",
+        "model_type": "retinanet",
+        "dataset_path": "combined_dataset",
+        "image_size": 640,
+        "metrics": {
+            "Precision": 0.7474481503031752,
+            "Recall": 0.46029728241369006,
+            "mAP@50": 0.4757053852081299,
+            "mAP@50-95": 0.26050081849098206,
+            "F1_Score": 0.5697360687801707
+        }
+    }
+]
